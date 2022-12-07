@@ -285,9 +285,9 @@ function install_ros2() {
     echo -e "${GRN}Installing ROS packages for the Interbotix Arm...${OFF}"
     mkdir -p $INSTALL_PATH/src
     cd $INSTALL_PATH/src
-    git clone https://github.com/Interbotix/interbotix_ros_core.git -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/Interbotix/interbotix_ros_manipulators.git -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/Interbotix/interbotix_ros_toolboxes.git -b $ROS_DISTRO_TO_INSTALL
+    git clone https://github.com/hcdiekmann/interbotix_ros_core_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
+    git clone https://github.com/hcdiekmann/interbotix_ros_manipulators_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
+    git clone https://github.com/hcdiekmann/interbotix_ros_toolboxes_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
     # TODO(lsinterbotix) remove below when moveit_visual_tools is available in apt repo
     git clone https://github.com/ros-planning/moveit_visual_tools.git -b ros2
     if [ "$INSTALL_PERCEPTION" = true ]; then
