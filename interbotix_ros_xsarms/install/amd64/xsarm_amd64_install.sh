@@ -198,6 +198,7 @@ function install_ros2() {
       cd $APRILTAG_WS/src
       git clone https://github.com/Interbotix/apriltag_ros.git -b ros2-port
       cd $APRILTAG_WS
+      rosdep update --include-eol-distros
       rosdep install --from-paths src --ignore-src -r -y
       colcon build
       if [ $? -eq 0 ]; then
@@ -233,7 +234,7 @@ function install_ros2() {
     git submodule update --init interbotix_ros_xseries/interbotix_xs_driver
     cd ..
     if [ "$INSTALL_MATLAB" = true ]; then
-      cd interbotix_ros_toolboxes
+      cd interbotix_ros_toolboxes_uprobotic_devkits
       git submodule update --init third_party_libraries/ModernRobotics
       cd ..
     fi
@@ -241,6 +242,7 @@ function install_ros2() {
     sudo cp 99-interbotix-udev.rules /etc/udev/rules.d/
     sudo udevadm control --reload-rules && sudo udevadm trigger
     cd $INSTALL_PATH
+    rosdep update --include-eol-distros
     rosdep install --from-paths src --ignore-src -r -y
     colcon build
     if [ $? -eq 0 ]; then
