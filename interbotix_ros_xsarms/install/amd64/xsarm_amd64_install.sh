@@ -4,9 +4,9 @@
 #
 # Install the Interbotix X-Series Arms packages and their dependencies for usage with the UP robotic development kit.
 
-ROS_CORE_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_core_uprobotic_devkits'
-ROS_TOOLBOX_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_toolboxes_uprobotic_devkits'
-ROS_MANIPULATOR_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_manipulators_uprobotic_devkits'
+ROS_CORE_REPO_URL="https://github.com/hcdiekmann/interbotix_ros_core_uprobotic_devkits"
+ROS_TOOLBOX_REPO_URL="https://github.com/hcdiekmann/interbotix_ros_toolboxes_uprobotic_devkits"
+ROS_MANIPULATOR_REPO_URL="https://github.com/hcdiekmann/interbotix_ros_manipulators_uprobotic_devkits"
 
 OFF='\033[0m'
 RED='\033[0;31m'
@@ -223,12 +223,12 @@ function install_ros2() {
     # TODO(lsinterbotix) remove below when moveit_visual_tools is available in apt repo
     git clone https://github.com/ros-planning/moveit_visual_tools.git -b ros2
     if [ "$INSTALL_PERCEPTION" = true ]; then
-      rm interbotix_ros_manipulators/interbotix_ros_xsarms/interbotix_xsarm_perception/COLCON_IGNORE
-      rm interbotix_ros_toolboxes/interbotix_perception_toolbox/COLCON_IGNORE
+      rm interbotix_ros_manipulators_uprobotic_devkits/interbotix_ros_xsarms/interbotix_xsarm_perception/COLCON_IGNORE
+      rm interbotix_ros_toolboxes_uprobotic_devkits/interbotix_perception_toolbox/COLCON_IGNORE
     fi
-    rm interbotix_ros_toolboxes/interbotix_common_toolbox/interbotix_moveit_interface/COLCON_IGNORE
-    rm interbotix_ros_toolboxes/interbotix_common_toolbox/interbotix_moveit_interface_msgs/COLCON_IGNORE
-    cd interbotix_ros_core
+    rm interbotix_ros_toolboxes_uprobotic_devkits/interbotix_common_toolbox/interbotix_moveit_interface/COLCON_IGNORE
+    rm interbotix_ros_toolboxes_uprobotic_devkits/interbotix_common_toolbox/interbotix_moveit_interface_msgs/COLCON_IGNORE
+    cd interbotix_ros_core_uprobotic_devkits
     git submodule update --init interbotix_ros_xseries/dynamixel_workbench_toolbox
     git submodule update --init interbotix_ros_xseries/interbotix_xs_driver
     cd ..
@@ -237,7 +237,7 @@ function install_ros2() {
       git submodule update --init third_party_libraries/ModernRobotics
       cd ..
     fi
-    cd interbotix_ros_core/interbotix_ros_xseries/interbotix_xs_sdk
+    cd interbotix_ros_core_uprobotic_devkits/interbotix_ros_xseries/interbotix_xs_sdk
     sudo cp 99-interbotix-udev.rules /etc/udev/rules.d/
     sudo udevadm control --reload-rules && sudo udevadm trigger
     cd $INSTALL_PATH
