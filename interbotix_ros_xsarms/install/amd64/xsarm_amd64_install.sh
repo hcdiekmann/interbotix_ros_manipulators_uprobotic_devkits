@@ -2,7 +2,11 @@
 
 # USAGE: ./xsarm_amd64_install.sh [-h][-d DISTRO][-p PATH][-n]
 #
-# Install the Interbotix X-Series Arms packages and their dependencies.
+# Install the Interbotix X-Series Arms packages and their dependencies for usage with the UP robotic development kit.
+
+ROS_CORE_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_core_uprobotic_devkits'
+ROS_TOOLBOX_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_toolboxes_uprobotic_devkits'
+ROS_MANIPULATOR_REPO_URL='https://github.com/hcdiekmann/interbotix_ros_manipulators_uprobotic_devkits'
 
 OFF='\033[0m'
 RED='\033[0;31m'
@@ -31,7 +35,7 @@ INSTALL_PATH=~/interbotix_ws
 
 _usage="${BOLD}USAGE: ./xsarm_amd64_install.sh [-h][-d DISTRO][-p PATH][-n]${NORM}
 
-Install the Interbotix X-Series Arms packages and their dependencies.
+Install the Interbotix X-Series Arms packages and their dependencies for usage with the UP robotic development kit.
 
 Options:
 
@@ -53,14 +57,6 @@ Examples:
 
   ./xsarm_amd64_install.sh ${BOLD}-h${NORM}
     This will display this help message and quit.
-
-  ./xsarm_amd64_install.sh
-    This will install just the ROS 1 distro compatible with your Ubuntu version, or the stable ROS 2
-    distro if using Ubuntu 22.04 or later. It will prompt you to ask if you want to install certain
-    packages and dependencies.
-
-  ./xsarm_amd64_install.sh ${BOLD}-d noetic${NORM}
-    This will install ROS 1 Noetic assuming that your Ubuntu version is compatible.
 
   ./xsarm_amd64_install.sh ${BOLD}-n${NORM}
     Skip prompts and install all packages and dependencies.
@@ -170,70 +166,6 @@ function install_essential_packages() {
   fi
 }
 
-function install_ros1() {
-  # Install ROS 1
-  if [ $(dpkg-query -W -f='${Status}' ros-$ROS_DISTRO_TO_INSTALL-desktop-full 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    echo -e "${GRN}Installing ROS 1 $ROS_DISTRO_TO_INSTALL desktop...${OFF}"
-    sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-    sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-    sudo apt update
-    sudo apt -y install ros-$ROS_DISTRO_TO_INSTALL-desktop-full
-    if [ -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
-      sudo rm /etc/ros/rosdep/sources.list.d/20-default.list
-    fi
-    echo "source /opt/ros/$ROS_DISTRO_TO_INSTALL/setup.bash" >> ~/.bashrc
-    if [ $PY_VERSION == 2 ]; then
-      sudo apt -y install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
-    elif [ $PY_VERSION == 3 ]; then
-      sudo apt -y install python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool build-essential
-    fi
-    sudo rosdep init
-    rosdep update
-  else
-    echo "ros-$ROS_DISTRO_TO_INSTALL-desktop-full is already installed!"
-  fi
-  source /opt/ros/$ROS_DISTRO_TO_INSTALL/setup.bash
-
-  # Install Arm packages
-  if [ ! -d "$INSTALL_PATH/src" ]; then
-    echo -e "${GRN}Installing ROS packages for the Interbotix Arm...${OFF}"
-    mkdir -p $INSTALL_PATH/src
-    cd $INSTALL_PATH/src
-    git clone https://github.com/Interbotix/interbotix_ros_core.git -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/Interbotix/interbotix_ros_manipulators.git -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/Interbotix/interbotix_ros_toolboxes.git -b $ROS_DISTRO_TO_INSTALL
-    rm interbotix_ros_core/interbotix_ros_xseries/CATKIN_IGNORE
-    rm interbotix_ros_manipulators/interbotix_ros_xsarms/CATKIN_IGNORE
-    if [ "$INSTALL_PERCEPTION" = true ]; then
-      rm interbotix_ros_manipulators/interbotix_ros_xsarms/interbotix_xsarm_perception/CATKIN_IGNORE
-      rm interbotix_ros_toolboxes/interbotix_perception_toolbox/CATKIN_IGNORE
-    fi
-    rm interbotix_ros_toolboxes/interbotix_xs_toolbox/CATKIN_IGNORE
-    rm interbotix_ros_toolboxes/interbotix_common_toolbox/interbotix_moveit_interface/CATKIN_IGNORE
-    if [ "$INSTALL_MATLAB" = true ]; then
-      cd interbotix_ros_toolboxes
-      git submodule update --init third_party_libraries/ModernRobotics
-      cd ..
-    fi
-    cd interbotix_ros_core/interbotix_ros_xseries/interbotix_xs_sdk
-    sudo cp 99-interbotix-udev.rules /etc/udev/rules.d/
-    sudo udevadm control --reload-rules && sudo udevadm trigger
-    cd $INSTALL_PATH
-    rosdep install --from-paths src --ignore-src -r -y
-    catkin_make
-    if [ $? -eq 0 ]; then
-      echo -e "${GRN}${BOLD}Interbotix Arm ROS Packages built successfully!${NORM}${OFF}"
-    else
-      failed "Failed to build Interbotix Arm ROS Packages."
-    fi
-    echo "source $INSTALL_PATH/devel/setup.bash" >> ~/.bashrc
-  else
-    echo "Interbotix Arm ROS packages already installed!"
-  fi
-  source $INSTALL_PATH/devel/setup.bash
-}
-
 function install_ros2() {
   # Install ROS 2
   if [ $(dpkg-query -W -f='${Status}' ros-$ROS_DISTRO_TO_INSTALL-desktop 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
@@ -285,9 +217,9 @@ function install_ros2() {
     echo -e "${GRN}Installing ROS packages for the Interbotix Arm...${OFF}"
     mkdir -p $INSTALL_PATH/src
     cd $INSTALL_PATH/src
-    git clone https://github.com/hcdiekmann/interbotix_ros_core_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/hcdiekmann/interbotix_ros_manipulators_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
-    git clone https://github.com/hcdiekmann/interbotix_ros_toolboxes_uprobotic_devkits -b $ROS_DISTRO_TO_INSTALL
+    git clone ROS_CORE_REPO_URL -b $ROS_DISTRO_TO_INSTALL
+    git clone ROS_MANIPULATOR_REPO_URL -b $ROS_DISTRO_TO_INSTALL
+    git clone ROS_TOOLBOX_REPO_URL -b $ROS_DISTRO_TO_INSTALL
     # TODO(lsinterbotix) remove below when moveit_visual_tools is available in apt repo
     git clone https://github.com/ros-planning/moveit_visual_tools.git -b ros2
     if [ "$INSTALL_PERCEPTION" = true ]; then
@@ -428,7 +360,7 @@ sudo apt -y autoremove
 install_essential_packages
 
 if [[ $ROS_VERSION_TO_INSTALL == 1 ]]; then
-  install_ros1
+  failed "Only ROS 2 is supported by the UP robotic development kit."
 elif [[ $ROS_VERSION_TO_INSTALL == 2 ]]; then
   install_ros2
 else
