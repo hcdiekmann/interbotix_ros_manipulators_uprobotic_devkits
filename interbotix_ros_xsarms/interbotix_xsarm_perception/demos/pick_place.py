@@ -31,7 +31,7 @@
 from interbotix_perception_modules.armtag import InterbotixArmTagInterface
 from interbotix_perception_modules.pointcloud import InterbotixPointCloudInterface
 from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
-
+import time
 """
 This script uses a color/depth camera to get the arm to find objects and pick them up. For this
 demo, the arm is placed to the left of the camera facing outward. When the end-effector is located
@@ -47,7 +47,7 @@ Then change to this directory and type:
     python3 pick_place.py
 """
 
-ROBOT_MODEL = 'wx200'
+ROBOT_MODEL = 'px100'
 ROBOT_NAME = ROBOT_MODEL
 REF_FRAME = 'camera_color_optical_frame'
 ARM_TAG_FRAME = f'{ROBOT_NAME}/ar_tag_link'
@@ -71,17 +71,18 @@ def main():
     # set initial arm and gripper pose
     bot.arm.go_to_sleep_pose()
     bot.gripper.release()
-
+    #time.sleep(5)
     # get the ArmTag pose
-    armtag.find_ref_to_arm_base_transform()
-    bot.arm.set_ee_pose_components(x=0.3, z=0.2)
+    #armtag.find_ref_to_arm_base_transform()
+    #bot.arm.set_ee_pose_components(x=0.3, z=0.2)
 
     # get the cluster positions
     # sort them from max to min 'x' position w.r.t. the ARM_BASE_FRAME
     success, clusters = pcl.get_cluster_positions(
         ref_frame=ARM_BASE_FRAME,
-        sort_axis='x',
-        reverse=True
+        sort_axis='y', # y is default
+        reverse=True,
+        is_parallel=True # objects surface plane parallel to ref frame
     )
 
     if success:
@@ -89,16 +90,30 @@ def main():
         for cluster in clusters:
             x, y, z = cluster['position']
             print(x, y, z)
-            bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=0.5)
-            bot.arm.set_ee_pose_components(x=x, y=y, z=z, pitch=0.5)
-            bot.gripper.grasp()
-            bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=0.5)
-            bot.arm.set_ee_pose_components(x=0.3, z=0.2)
-            bot.gripper.release()
+            if (y > 0):
+                print('Adjusting y coordinate for object to the left of the arm')
+                y = y + (y*0.22) #static tf from rgb lens on right, therefor calibrate cordinates
+                print(y)
+
+            if (x > 0.2):
+                print('Object detected close to maximum reach, the pick might fail.')
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=0.75)
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z, pitch=0.75)
+                bot.gripper.grasp()
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=1.2)
+                bot.arm.go_to_sleep_pose()
+                bot.gripper.release()
+            else:
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=1.5)
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z, pitch=1.2)
+                bot.gripper.grasp()
+                bot.arm.set_ee_pose_components(x=x, y=y, z=z+0.05, pitch=1.5)
+                bot.arm.go_to_sleep_pose()
+                bot.gripper.release()
+            
     else:
         print('Could not get cluster positions.')
 
-    bot.arm.set_ee_pose_components(x=0.3, z=0.2)
     bot.arm.go_to_sleep_pose()
     bot.shutdown()
 
