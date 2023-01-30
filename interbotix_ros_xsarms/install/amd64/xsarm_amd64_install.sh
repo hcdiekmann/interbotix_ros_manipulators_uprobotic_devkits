@@ -21,12 +21,9 @@ RRE="${NORM}${OFF}"
 
 PROMPT="> "
 
-ALL_VALID_DISTROS=('melodic' 'noetic' 'galactic' 'humble' 'rolling')
-ROS1_VALID_DISTROS=('melodic' 'noetic')
 ROS2_VALID_DISTROS=('galactic' 'humble' 'rolling')
 
-BIONIC_VALID_DISTROS=('melodic')
-FOCAL_VALID_DISTROS=('noetic' 'galactic')
+FOCAL_VALID_DISTROS=('galactic')
 JAMMY_VALID_DISTROS=('humble' 'rolling')
 
 NONINTERACTIVE=false
@@ -41,10 +38,8 @@ Options:
 
   -h              Display this help message and quit
 
-  -d DISTRO       Install the DISTRO ROS distro compatible with your Ubuntu version. See
-                  'https://github.com/Interbotix/.github/blob/main/SECURITY.md' for the list of
-                  supported distributions. If not given, installs the ROS 1 distro compatible with
-                  your Ubuntu version, or the stable ROS 2 distro if using Ubuntu 22.04 or later.
+  -d DISTRO       Install the ROS distro compatible with your Ubuntu version. Currently only galactic is supported 
+                  with Ubuntu 20.04 with plans for humble on Ubuntu 22.04
 
   -p PATH         Sets the absolute install location for the Interbotix workspace. If not specified,
                   the Interbotix workspace directory will default to '~/interbotix_ws'.
@@ -95,36 +90,19 @@ function failed() {
 
 function validate_distro() {
   # check if chosen distro is valid and set ROS major version
-  if contains_element $ROS_DISTRO_TO_INSTALL "${ALL_VALID_DISTROS[@]}"; then
-    if contains_element $ROS_DISTRO_TO_INSTALL "${ROS1_VALID_DISTROS[@]}"; then
-      # Supported ROS 1 distros
-      ROS_VERSION_TO_INSTALL=1
-    elif contains_element $ROS_DISTRO_TO_INSTALL "${ROS2_VALID_DISTROS[@]}"; then
-      # Supported ROS 2 distros
-      ROS_VERSION_TO_INSTALL=2
-    else
-      # For cases where it passes the first check but somehow fails the second check
-      failed "Something went wrong."
-    fi
+  if contains_element $ROS_DISTRO_TO_INSTALL "${ROS2_VALID_DISTROS[@]}"; then
+    ROS_VERSION_TO_INSTALL=2
     ROS_DISTRO_TO_INSTALL=$ROS_DISTRO_TO_INSTALL
     echo -e "${GRN}${BOLD}Chosen Version: ROS${ROS_VERSION_TO_INSTALL} $ROS_DISTRO_TO_INSTALL${NORM}${OFF}"
     return 0
   else
-    failed "'$ROS_DISTRO_TO_INSTALL' is not a valid ROS Distribution. Choose one of: "${ALL_VALID_DISTROS[@]}""
+    failed "'$ROS_DISTRO_TO_INSTALL' is not a valid ROS Distribution. Choose one of: "${ROS2_VALID_DISTROS[@]}""
   fi
 }
 
 function check_ubuntu_version() {
  # check if the chosen distribution is compatible with the Ubuntu version
   case $UBUNTU_VERSION in
-
-    18.04 )
-      if contains_element $ROS_DISTRO_TO_INSTALL "${BIONIC_VALID_DISTROS[@]}"; then
-        PY_VERSION=2
-      else
-        failed "Chosen ROS distribution '$ROS_DISTRO_TO_INSTALL' is not supported on Ubuntu ${UBUNTU_VERSION}."
-      fi
-      ;;
 
     20.04 )
       if contains_element $ROS_DISTRO_TO_INSTALL "${FOCAL_VALID_DISTROS[@]}"; then
@@ -136,7 +114,8 @@ function check_ubuntu_version() {
 
     22.04 )
       if contains_element $ROS_DISTRO_TO_INSTALL "${JAMMY_VALID_DISTROS[@]}"; then
-        PY_VERSION=3
+        #PY_VERSION=3
+        failed "Ubuntu 22.04 is currently not supported by the UP robotic devkit"
       else
         failed "Chosen ROS distribution '$ROS_DISTRO_TO_INSTALL' is not supported on Ubuntu ${UBUNTU_VERSION}."
       fi
@@ -155,10 +134,7 @@ function install_essential_packages() {
   if [ $ROS_VERSION_TO_INSTALL == 2 ]; then
     sudo pip3 install transforms3d
   fi
-  if [ $PY_VERSION == 2 ]; then
-    sudo apt -y install python-pip
-    python -m pip install modern_robotics
-  elif [ $PY_VERSION == 3 ]; then
+  if [ $PY_VERSION == 3 ]; then
     sudo apt -y install python3-pip
     python3 -m pip install modern_robotics
   else
@@ -291,15 +267,13 @@ UBUNTU_VERSION="$(lsb_release -rs)"
 
 # set default ROS distro before reading clargs
 if [ "$DISTRO_SET_FROM_CL" = false ]; then
-  if [ $UBUNTU_VERSION == "18.04" ]; then
-    ROS_DISTRO_TO_INSTALL="melodic"
-  elif [ $UBUNTU_VERSION == "20.04" ]; then
-    ROS_DISTRO_TO_INSTALL="noetic"
+  if [ $UBUNTU_VERSION == "20.04" ]; then
+    ROS_DISTRO_TO_INSTALL="galactic"
   elif [ $UBUNTU_VERSION == "22.04" ]; then
     ROS_DISTRO_TO_INSTALL="humble"
   else
     echo -e "${BOLD}${RED}Unsupported Ubuntu verison: $UBUNTU_VERSION.${NORM}${OFF}"
-    failed "Interbotix Arm only works with Ubuntu 18.04 Bionic, 20.04 Focal, or 22.04 Jammy on your hardware."
+    failed "The UP devkit arm only works with Ubuntu 20.04 Focal, or 22.04 Jammy on your hardware."
   fi
 fi
 
@@ -361,13 +335,7 @@ sudo apt -y autoremove
 
 install_essential_packages
 
-if [[ $ROS_VERSION_TO_INSTALL == 1 ]]; then
-  failed "Only ROS 2 is supported by the UP robotic development kit."
-elif [[ $ROS_VERSION_TO_INSTALL == 2 ]]; then
-  install_ros2
-else
-  failed "Something went wrong."
-fi
+install_ros2
 
 setup_env_vars
 
